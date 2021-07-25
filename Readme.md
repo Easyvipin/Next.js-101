@@ -1,123 +1,55 @@
-# Navigation with Pages -day2
+# Next.js Data Fetching day3
 
-Routing is already inbuilt in Next.js
-
-Add some new pages to the page directory you're done.
-
-### PRERENDERING
-
-Next.js Pre rerender by default 
-
-Prerender means generating HTML files for each page in advance.
+`getStaticProps` (Static Generation)
 
 ---
 
-### Hydration
+This async function is called at build time which returns `props` to the page so the fetched data can render on the component.
 
-Each Page is generated with minimal code of javascript associated with it. When the page gets loaded to the browser then the javascript runs after which site become accessible.
+### Parameters {context}
 
-This Process called Hydration
+ We call `getStaticProps` by passing an object which has following keys :
 
-### Types of Pre-rendering
+ 1. Params : It contains the parameters of routes , this basically works in dynamic routing of page .
 
----
+    case : We have a page that will have dynamic routing ,  we named that page [id].js  
 
-> Rendering only differ by when next.js generates HTML for the page
+              Now in that case the params will be { id : something}
 
-### Static Site Generation
+   The use of `params` basically required when we work with `getStaticPaths()`
 
-Every HTML file is already generated at build time and reuse on each request.
+1. preview
+2. previewData
+3. locales
 
-1.without data
+### Return
 
-   page is pre-rendered with a single HTML file
+> it returns object which have
 
-2.with data
+1. `props`
+2. `revalidate` : the time after which existing pre-rendered page regeneration happens .
 
-Some pages require fetching data from an external source in that case , Next.js have two function for different scenarios.
+     **case**: if we have `revalidate:60` then that page will be regenerated after 60 with new data or    updated data.
 
-- Your page content depends on external data ` getStaticProps `
-- Your page paths depend on external data `getStaticPaths` with `getStaticProps`
+1. `notfound` :This stores a boolean value to return 404 status.
 
-`getStaticProps`
-
-This async method runs at build time and return the data as props to the component.
-
-/pages/PostList.js
+ **case** : we can use `notfound` to send 404 status code with page when the data  was unable to be        fetched from an API.   
 
 ```jsx
-import Link from "next/link";
-const PostList = ({ posts }) => {
-  return (
-    <div className="post container">
-      {posts && (
-        <div className="post-list">
-          {posts.map((eachPost) => {
-            return (
-              <div className="card-container" key={eachPost.id}>
-                <p>{eachPost.body}</p>
-                <Link href={`/posts/${eachPost.id}`}>
-                  <a>More</a>
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export async function getStaticProps() {
-  const res = await fetch("https://jsonplaceholder.typicode.com/posts");
-  const posts = await res.json();
-
-  return {
-    props: {
-      posts,
-    },
-  };
-}
-
-export default PostList;
-```
-
-`getStaticPaths`
-
-It prerenders the page correspond to list of paths with corresponding dynamic routes params
-
-/pages/posts/[id].js
-
-```jsx
-const Post = ({ post }) => {
-  return (
-    <div className="container">
-      <h2 className="title">{post.title}</h2>
-      <p className="body">{post.body}</p>
-    </div>
-  );
-};
-export async function getStaticPaths() {
-  const res = await fetch("https://jsonplaceholder.typicode.com/posts");
-  const posts = await res.json();
-
-  const paths = posts.map((eachPost) => ({
-    params: { id: eachPost.id.toString() },
-  }));
-  //  list of paths and pre-render the each path at build time
-  //paths = [ {params :id } , { params:id } ]
-  return {
-    paths,
-    fallback: false,
-  };
-}
 
 export async function getStaticProps({ params }) {
   console.log(params);
   const res = await fetch(
     `https://jsonplaceholder.typicode.com/posts/${params.id}`
   );
-  const post = await res.json();
+  const post =undefined;
+
+  if (!post) {
+    console.log("post invalid");
+    return {
+      notFound: true, // return and redirect to 404 page 
+    };
+  }
 
   return {
     props: {
@@ -129,50 +61,80 @@ export async function getStaticProps({ params }) {
 export default Post;
 ```
 
-When to use Static Generation?
-
-In Static Generation the page was built once and served by CDN Yess much faster then server-side rendering.
-
-Some use cases of static generation
-
-1. Blog Post
-2. marketing
-3. documentation
-4. terms and condition page
-
-> I don't think e-commerce product listings can be count in a static generation, nowadays there's a lot of data that need to be in sync while viewing the product list like sale countdown time and stock status.
-
-To make a Decision between static and server-side rendering?
-
-> You should ask yourself: "Can I pre-render this page ahead of a user's request?" If the answer is yes, then you should choose Static Generation. - Next.js Documentation
-
-And there are some scenarios in which pre-render cannot be done ahead of user Requests.
-
-In that case, Server-side Rendering comes in.
-
-### Server-side Rendering
-
-On Server-side rendering HTML is generated at every request.
-
-`getServerStaticProps` is a async function which is called by server every time a request is made and render the component with latest data.
+1. `redirect` : Its an object `{destination:string,permanent:boolean}` . It will redirect to the destination. 
 
 ```jsx
-function Page({ data }) {
-  // Render data...
-}
+const post = undefined;
 
-// This gets called on every request
-export async function getServerSideProps() {
-  // Fetch data from external API
-  const res = await fetch(`https://.../data`)
-  const data = await res.json()
-
-  // Pass data to the page via props
-  return { props: { data } }
-}
-
-export default Page
-
+  if (!post) {
+    console.log("post invalid");
+    return {
+      redirect: {
+        destination: "/About", //redirect to about page
+        permanent: false,
+      },
+    };
+  }
 ```
 
-Similar to `getStaticProps` but this function called only one time at build time but this function get called every time on request.
+> server-side code directly in `getStaticProps()`
+
+There is no need to fetch the API in `getStaticProps` in that case we can just write down the whole API route logic in the function or import the module which contains the logic.
+
+Ummm writing server-side in client-side that will be disaster?
+
+Thats not the case..
+
+> " Imports used in getStaticProps will not be bundled for the client-side." - Next.js Docs
+
+When to use `getStaticProps` ?
+
+1. Data required to render the page is available at build time i.e **ahead of user request**
+2. Data from headless cms
+3. The data can be publicly cached (not user-specific).
+4. For SEO purposes like fast generation of page with caching of cdn.
+
+## Incremental static regeneration
+
+---
+
+Next.js helps us to create or updated existed page after build time that happens through ISR
+
+It can be enabled
+
+ * through `revalidate` property in `getStaticProps`
+
+* through `fallback:"blocking"` property in `getStaticPaths`
+
+When a request is made to an existing page (already pre-rendered page in that case if 
+
+`revalidate : 10`.
+
+1. Exist page is sent on initial request and before 10s  if you refresh, the same cached page will be displayed.
+2. After 10s if the request made it will still show the cached page but nextjs regenerate the page with updated data in backround.
+3. And next time on request a updated page is rendered . 
+4. If the regeneration fails the old page will be cached without any alteration in the data.
+
+ 
+
+When a request is made to the unknown path that does not exists in build time 
+
+`falseback:"blocking"` .
+
+This will allow next.js to server render the page for the first time and later request will be on a static page.
+
+### Technical Details
+
+> `getStaticProps` only run at build time and it did not receive the data that only available on request time , ex : query params , headers.
+
+**static generation include HTML and JSON**
+
+When a page is pre-rendered it basically build a Html file and json file to hold the result of `getStaticProps`
+
+As we know `getStaticProps` is not bundled on client-side .
+
+so json hold the data such as the result that was returned.
+
+And when the user navigates to a page the particular JSON is fetched to populate the props for that page. 
+
+That's how client-side work without the use of `getStaticProps` by using Json file.

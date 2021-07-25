@@ -24,7 +24,17 @@ export async function getStaticProps({ params }) {
   const res = await fetch(
     `https://jsonplaceholder.typicode.com/posts/${params.id}`
   );
-  const post = await res.json();
+  const post = undefined;
+
+  if (!post) {
+    console.log("post invalid");
+    return {
+      redirect: {
+        destination: "/About",
+        permanent: false,
+      },
+    };
+  }
 
   return {
     props: {
