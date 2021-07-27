@@ -1,4 +1,4 @@
-import Link from "next/link";
+/* import Link from "next/link";
 const PostList = ({ posts }) => {
   return (
     <div className="post container">
@@ -30,5 +30,12 @@ export async function getStaticProps() {
     },
   };
 }
+
+export default PostList;
+ */
+
+const PostList = () => {
+  return <div>Postlist</div>;
+};
 
 export default PostList;
